@@ -67,6 +67,7 @@ export default function App() {
   }, [setUser]);
 
   const handleStop = useCallback(async (finalScore) => {
+    console.log("🏁 Juego terminado. Puntuación final:", finalScore);
     stopAR()
     stopAmbient()
     setGameState('gameover')
@@ -74,8 +75,13 @@ export default function App() {
     // Save high score automatically
     const uid = localStorage.getItem('game_uid');
     const name = localStorage.getItem('game_username');
+    
+    console.log("👤 Datos de sesión - UID:", uid, "Nombre:", name);
+
     if (uid && name) {
       await saveHighScore(uid, name, finalScore);
+    } else {
+      console.warn("⚠️ No se puede guardar: Falta UID o Nombre en localStorage");
     }
   }, [])
 
