@@ -1,11 +1,11 @@
 import * as THREE from 'three'
 
 export const ORB_TYPES = [
-  { type: 'BLUE',   icon: '💰', color: 0x00aaff, points: 1, weight: 60 },
-  { type: 'RED',    icon: '💩', color: 0xff3333, points: 2, weight: 8 },
-  { type: 'GREEN',  icon: '🌿', color: 0x33ff33, points: 5, weight: 8 },
-  { type: 'YELLOW', icon: '☕', color: 0xffff33, points: 3, weight: 8 },
-  { type: 'ORANGE', icon: '🐱', color: 0xffaa00, points: 0, weight: 4 }, // gato
+  { type: 'BLUE', icon: '💰', color: 0x00aaff, points: 1, weight: 60 },
+  { type: 'RED', icon: '💩', color: 0xff3333, points: 2, weight: 60 },
+  { type: 'GREEN', icon: '🌿', color: 0x33ff33, points: 5, weight: 60 },
+  { type: 'YELLOW', icon: '☕', color: 0xffff33, points: 3, weight: 60 },
+  { type: 'ORANGE', icon: '🐱', color: 0xffaa00, points: 0, weight: 60 }, // gato
 ]
 
 // Caché de texturas para evitar recrearlas continuamente
@@ -19,7 +19,7 @@ function getEmojiTexture(emoji) {
   canvas.width = size
   canvas.height = size
   const context = canvas.getContext('2d')
-  
+
   // Limpiar fondo (asegurar transparencia total)
   context.clearRect(0, 0, size, size)
 
@@ -27,14 +27,14 @@ function getEmojiTexture(emoji) {
   context.font = 'bold 380px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif'
   context.textAlign = 'center'
   context.textBaseline = 'middle'
-  
+
   // Brillo exterior (Halo) directo en el emoji para que resalte en cualquier fondo
   context.shadowColor = 'rgba(255, 255, 255, 0.8)'
   context.shadowBlur = 40
-  
+
   // Dibujar el emoji centrado
   context.fillText(emoji, size / 2, size / 2)
-  
+
   // Segunda pasada para reforzar el color y detalle
   context.shadowBlur = 0
   context.fillText(emoji, size / 2, size / 2)
