@@ -6,8 +6,6 @@ export const ORB_TYPES = [
   { type: 'GREEN', color: 0x33ff33, points: 5, weight: 8 },
   { type: 'YELLOW', color: 0xffff33, points: 3, weight: 8 },
   { type: 'ORANGE', color: 0xffaa00, points: 0, weight: 4 }, // gato
-  { type: 'PURPLE', color: 0xaa66ff, points: -5, weight: 10 }, // facturas
-  { type: 'WHITE', color: 0xffffff, points: 0, weight: 10 }, // fantasma
 ]
 
 export function createOrb() {
@@ -57,7 +55,7 @@ export function createOrb() {
   group.add(glow)
 
   // Hitbox invisible
-  const hitGeo = new THREE.SphereGeometry(0.25, 16, 16)
+  const hitGeo = new THREE.SphereGeometry(0.4, 16, 16)
   const hitMat = new THREE.MeshBasicMaterial({ visible: false, transparent: true, opacity: 0 })
   const hitMesh = new THREE.Mesh(hitGeo, hitMat)
   hitMesh.name = "hitbox"

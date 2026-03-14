@@ -9,14 +9,24 @@ let callbacks = {}
 let spawnInterval = null
 let isRunning = false
 let targetFoundTriggered = false
-let arState = { paranoia: false, speedMult: 1, spawnRateMult: 1 }
 
-export async function initAR(container, { onCapture, onTargetFound }, externalState) {
+// Estado global de AR accesible desde fuera (Singleton)
+export const arState = {
+  paranoia: false,
+  speedMult: 1,
+  spawnRateMult: 1
+}
+
+export async function initAR(container, { onCapture, onTargetFound }) {
   callbacks.onCapture = onCapture
   callbacks.onTargetFound = onTargetFound
-  arState = externalState || { paranoia: false, speedMult: 1, spawnRateMult: 1 }
   isRunning = true
   targetFoundTriggered = false
+  
+  // Reiniciar estado
+  arState.paranoia = false
+  arState.speedMult = 1
+  arState.spawnRateMult = 1
 
   mindarThree = new MindARThree({
     container
@@ -24,32 +34,28 @@ export async function initAR(container, { onCapture, onTargetFound }, externalSt
 
   const { renderer, scene, camera } = mindarThree
 
-  // Iluminación
   scene.add(new THREE.AmbientLight(0xffffff, 0.6))
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8)
   dirLight.position.set(0, 1, 1)
   scene.add(dirLight)
 
-  // Anchor 168 (Entre los ojos)
   const anchor = mindarThree.addAnchor(168)
 
   const spawnOrb = () => {
-    if (!isRunning || orbs.length >= 30) return 
+    if (!isRunning || orbs.length >= 25) return 
     const orbGroup = createOrb()
     
     orbGroup.position.set(
-      (Math.random() - 0.5) * 3.0,
-      (Math.random() - 0.5) * 3.0,
+      (Math.random() - 0.5) * 2.5,
+      (Math.random() - 0.5) * 2.5,
       Math.random() * 0.4 + 0.15
     )
-    orbGroup.userData.basePos = orbGroup.position.clone()
     
-    // Velocidad base
-    const baseSpeedThreshold = 0.04
+    const baseSpeed = 0.04
     orbGroup.userData.velocity = new THREE.Vector3(
-      (Math.random() - 0.5) * baseSpeedThreshold,
-      (Math.random() - 0.5) * baseSpeedThreshold,
-      (Math.random() - 0.5) * baseSpeedThreshold
+      (Math.random() - 0.5) * baseSpeed,
+      (Math.random() - 0.5) * baseSpeed,
+      (Math.random() - 0.5) * baseSpeed
     )
     orbGroup.userData.expiresAt = Date.now() + 5000
     
@@ -63,6 +69,7 @@ export async function initAR(container, { onCapture, onTargetFound }, externalSt
     console.log('🎯 CARA DETECTADA');
     targetFoundTriggered = true
     callbacks.onTargetFound?.()
+    
     if (!spawnInterval && isRunning) {
       const scheduleNextSpawn = () => {
         if (!isRunning) return
@@ -76,26 +83,22 @@ export async function initAR(container, { onCapture, onTargetFound }, externalSt
 
   anchor.onTargetFound = () => handleTargetFound();
 
-  // --- Raycaster ---
   const raycaster = new THREE.Raycaster()
+  raycaster.params.Points.threshold = 0.5
   const mouse = new THREE.Vector2()
 
   const handlePointer = (e) => {
     if (!isRunning || !targetFoundTriggered) return
     
-    // Si es un evento de movimiento y no estamos en modo Paranoia, no hacemos el Raycast pesado
-    // Pero necesitamos actualizar la posición del mouse para el loop de animación
     const isMoveEvent = e.type === 'mousemove' || e.type === 'touchmove';
-    
     const clientX = e.touches ? e.touches[0].clientX : e.clientX
     const clientY = e.touches ? e.touches[0].clientY : e.clientY
 
     mouse.x = (clientX / window.innerWidth) * 2 - 1
     mouse.y = -(clientY / window.innerHeight) * 2 + 1
 
-    if (isMoveEvent) return; // Solo actualizamos 'mouse' y salimos
+    if (isMoveEvent) return; 
 
-    // Solo si es mousedown o touchstart procedemos a la captura
     raycaster.setFromCamera(mouse, camera)
     const hits = raycaster.intersectObjects(anchor.group.children, true)
 
@@ -111,7 +114,6 @@ export async function initAR(container, { onCapture, onTargetFound }, externalSt
         anchor.group.remove(targetOrb)
         orbs.splice(idx, 1)
         playCapture()
-        // PASAR EL TIPO AL CALLBACK
         callbacks.onCapture?.(targetOrb.userData.points, targetOrb.userData.type)
       }
     }
@@ -133,8 +135,6 @@ export async function initAR(container, { onCapture, onTargetFound }, externalSt
 
     if (targetFoundTriggered) {
       const now = Date.now();
-      
-      // Actualizar Raycaster para Paranoia (basado en la última posición del ratón)
       raycaster.setFromCamera(mouse, camera);
 
       for (let i = orbs.length - 1; i >= 0; i--) {
@@ -146,23 +146,21 @@ export async function initAR(container, { onCapture, onTargetFound }, externalSt
           continue;
         }
 
-        // --- Lógica de Paranoia (Repulsión) ---
+        // Paranoia repulsión
         if (arState.paranoia && orb.userData.type !== 'WHITE') {
           const distToRay = raycaster.ray.distanceSqToPoint(orb.position)
-          if (distToRay < 2.0) { // Rango de detección
+          if (distToRay < 2.0) {
             const pushVector = new THREE.Vector3().subVectors(orb.position, raycaster.ray.origin)
             pushVector.z = 0 
             const repulsionStrength = 0.2 / Math.max(0.1, distToRay)
             pushVector.normalize().multiplyScalar(repulsionStrength)
-            orb.position.add(pushVector) // Aplicar empuje a la posición actual
+            orb.position.add(pushVector)
           }
         }
 
-        // Aplicar movimiento (multiplicado por speedMult del poder)
         const frameVelocity = orb.userData.velocity.clone().multiplyScalar(arState.speedMult || 1);
         orb.position.add(frameVelocity);
 
-        // Rebotes
         const bounds = { x: 1.5, y: 1.5, z: 0.8 };
         if (Math.abs(orb.position.x) > bounds.x) orb.userData.velocity.x *= -1;
         if (Math.abs(orb.position.y) > bounds.y) orb.userData.velocity.y *= -1;

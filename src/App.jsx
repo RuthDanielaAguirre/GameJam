@@ -1,11 +1,83 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { initAR, stopAR } from './game/ar'
+import { initAR, stopAR, arState } from './game/ar'
 import { playAmbient, stopAmbient } from './game/audio'
 import { saveHighScore } from './services/firebase'
 import LoginModal from './components/LoginModal'
 import LobbyScreen from './components/LobbyScreen'
 import Leaderboard from './components/Leaderboard'
 import './index.css'
+
+// ─── Componentes Minijuegos ───────────────────────────────────────────────────
+function Muffins({ onMuffinClick }) {
+  const [muffins, setMuffins] = useState([])
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMuffins(m => {
+        if (m.length >= 6) return m
+        return [...m, { id: Math.random(), x: Math.random() * 80 + 10, y: Math.random() * 80 + 10 }]
+      })
+    }, 700)
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="muffins-container">
+      {muffins.map(m => (
+        <div key={m.id} 
+             className="muffin" 
+             style={{ left: `${m.x}%`, top: `${m.y}%` }}
+             onClick={(e) => {
+                e.stopPropagation();
+                onMuffinClick();
+                setMuffins(curr => curr.filter(currM => currM.id !== m.id));
+             }}>
+          🧁
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function CatMinigame({ onComplete }) {
+  const [clicks, setClicks] = useState(0)
+  const [timeLeft, setTimeLeft] = useState(50)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 0) {
+          onComplete(clicks)
+          return 0
+        }
+        return t - 1
+      })
+    }, 100)
+    return () => clearInterval(timer)
+  }, [clicks, onComplete])
+
+  const handleClick = (e) => {
+    e.stopPropagation()
+    setClicks(c => {
+      const newC = c + 1
+      if (newC >= 15) {
+        onComplete(newC + Math.floor(timeLeft / 2))
+      }
+      return newC
+    })
+  }
+
+  return (
+    <div className="cat-minigame-overlay">
+      <div className="cat-visual" onClick={handleClick}>
+        <div className="cat-ears">/\_/\</div>
+        <div className="cat-face">( o.o )</div>
+        <div className="cat-belly">¡Ráscame!<br/>({Math.max(0, 15 - clicks)})</div>
+      </div>
+      <div className="cat-timer">Tiempo restante: {(timeLeft / 10).toFixed(1)}s</div>
+    </div>
+  )
+}
 
 // ─── Pantalla de inicio ───────────────────────────────────────────────────────
 function MenuScreen({ onStart }) {
@@ -65,7 +137,7 @@ export default function App() {
   
   const scoreRef = useRef(0)
   const multiplierRef = useRef(1)
-  const arState = useRef({
+  const arStateRef = useRef({
     paranoia: false,
     speedMult: 1,
     spawnRateMult: 1
@@ -116,44 +188,40 @@ export default function App() {
         // Lógica de Poderes
         if (type === 'RED') {
           setActiveMessage("Que seas paranoide no quiere decir que no te estén persiguiendo")
-          arState.current.paranoia = true
-          setTimeout(() => arState.current.paranoia = false, 5000)
+          arState.paranoia = true
+          setTimeout(() => arState.paranoia = false, 5000)
         } else if (type === 'GREEN') {
           setActiveMessage("Modo munchies activado")
           setActiveEffect('green')
-          arState.current.speedMult = 0.5
-          setTimeout(() => { setActiveEffect(null); arState.current.speedMult = 1 }, 5000)
+          arState.speedMult = 0.5
+          setTimeout(() => { setActiveEffect(null); arState.speedMult = 1 }, 5000)
         } else if (type === 'YELLOW') {
           setActiveMessage("Sobredosis de cafeína")
           setActiveEffect('shake')
-          arState.current.speedMult = 2
-          arState.current.spawnRateMult = 2
+          arState.speedMult = 2
+          arState.spawnRateMult = 2
           multiplierRef.current = 2
           setTimeout(() => { 
             setActiveEffect(null)
-            arState.current.speedMult = 1
-            arState.current.spawnRateMult = 1
+            arState.speedMult = 1
+            arState.spawnRateMult = 1
             multiplierRef.current = 1
           }, 5000)
         } else if (type === 'ORANGE') {
           setActiveMessage("Tu gato exige atención")
           setCatMinigame(true)
-        } else if (type === 'WHITE') {
-          setActiveMessage("Booo! Un fantasma")
-        } else if (type === 'PURPLE') {
-          setActiveMessage("¡Malditas facturas! -5 puntos")
         }
 
-        // Limpiar mensaje tras 3 segundos
+        // Limpiar mensaje tras 3.5 segundos
         if (type !== 'BLUE') {
-          setTimeout(() => setActiveMessage(""), 3000)
+          setTimeout(() => setActiveMessage(""), 3500)
         }
       },
       onTargetFound: () => {
         console.log("📱 App.jsx: Target Found recibido! Iniciando cronómetro.");
         setIsMatchStarted(true);
       }
-    }, arState.current) // Pasamos arState como segundo argumento
+    })
     setGameState('playing')
   }, [])
 
@@ -195,21 +263,21 @@ export default function App() {
       <div ref={containerRef} id="ar-container" />
 
       {/* Mensajes de Poder */}
-      {activeMessage && <div className="power-message">{activeMessage}</div>}
+      {activeMessage && <div className="message-toast">{activeMessage}</div>}
 
-      {/* Minijuego del Gato */}
+      {/* Capa de efectos visuales globales */}
+      <div className={`effect-overlay ${activeEffect || ''}`} />
+
+      {/* Minijuegos */}
+      {activeEffect === 'green' && (
+        <Muffins onMuffinClick={() => setScore(s => s + 2)} />
+      )}
+      
       {catMinigame && (
-        <div className="screen" style={{ zIndex: 1000, background: 'rgba(0,0,0,0.9)' }}>
-          <h1>🐱 ¡EL GATO QUIERE JUGAR!</h1>
-          <p>Toca al gato rápido para volver al juego</p>
-          <div 
-            className="btn" 
-            style={{ fontSize: '4rem', padding: '2rem' }}
-            onClick={() => setCatMinigame(false)}
-          >
-            🐈
-          </div>
-        </div>
+        <CatMinigame onComplete={(bonus) => {
+          setScore(s => s + bonus)
+          setCatMinigame(false)
+        }} />
       )}
 
       {/* UI overlay */}
