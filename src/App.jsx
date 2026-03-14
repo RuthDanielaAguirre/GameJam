@@ -41,7 +41,7 @@ function GameOver({ score, onRestart, onExit }) {
       <h1>Game Over</h1>
       <div className="score-display">{score}</div>
       <p className="score-label">orbes capturados</p>
-      <div className="modal-actions" style={{pointerEvents: 'all'}}>
+      <div className="modal-actions" style={{ pointerEvents: 'all' }}>
         <button className="btn btn-secondary" onClick={onExit}>Ver Lobby</button>
         <button className="btn" onClick={onRestart}>Reiniciar</button>
       </div>
@@ -52,24 +52,25 @@ function GameOver({ score, onRestart, onExit }) {
 // ─── App principal ────────────────────────────────────────────────────────────
 export default function App() {
   const containerRef = useRef(null)
-  const [user, setUser]           = useState(null)
+  const [user, setUser] = useState(null)
   const [gameState, setGameState] = useState('menu') // 'menu' | 'lobby' | 'playing' | 'gameover'
   const [showLogin, setShowLogin] = useState(false)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
-  const [score, setScore]         = useState(0)
-  const [timeLeft, setTimeLeft]   = useState(60)
+  const [score, setScore] = useState(0)
+  const [timeLeft, setTimeLeft] = useState(60)
+  const scoreRef = useRef(0) // Para tener el score actualizado dentro de callbacks de AR
 
   // Check for existing session
   useEffect(() => {
     const savedName = localStorage.getItem('game_username');
     if (savedName) setUser(savedName);
-  }, []);
+  }, [setUser]);
 
   const handleStop = useCallback(async (finalScore) => {
     stopAR()
     stopAmbient()
     setGameState('gameover')
-    
+
     // Save high score automatically
     const uid = localStorage.getItem('game_uid');
     const name = localStorage.getItem('game_username');
@@ -80,10 +81,19 @@ export default function App() {
 
   const handleStartGame = useCallback(async () => {
     setScore(0)
+    scoreRef.current = 0
     setTimeLeft(60)
+    stopAR()
+    stopAmbient()
     playAmbient()
     await initAR(containerRef.current, {
-      onCapture: (points) => setScore(s => Math.max(0, s + points)),
+      onCapture: () => {
+        setScore(s => {
+          const next = s + 1
+          scoreRef.current = next
+          return next
+        })
+      },
     })
     setGameState('playing')
   }, [])
@@ -109,14 +119,14 @@ export default function App() {
       setTimeLeft(t => {
         if (t <= 1) {
           clearInterval(interval)
-          handleStop(score) // Pass the current score to be saved
+          handleStop(scoreRef.current)  // ← score real
           return 0
         }
         return t - 1
       })
     }, 1000)
     return () => clearInterval(interval)
-  }, [gameState, handleStop, score])
+  }, [gameState])
 
   return (
     <>
@@ -124,30 +134,30 @@ export default function App() {
       <div ref={containerRef} id="ar-container" />
 
       {/* UI overlay */}
-      {gameState === 'menu'     && <MenuScreen onStart={handleInitiate} />}
-      
-      {gameState === 'lobby'    && (
-        <LobbyScreen 
-          username={user} 
-          onCreateGame={handleStartGame} 
-          onShowLeaderboard={() => setShowLeaderboard(true)} 
+      {gameState === 'menu' && <MenuScreen onStart={handleInitiate} />}
+
+      {gameState === 'lobby' && (
+        <LobbyScreen
+          username={user}
+          onCreateGame={handleStartGame}
+          onShowLeaderboard={() => setShowLeaderboard(true)}
         />
       )}
 
-      {gameState === 'playing'  && <HUD score={score} timeLeft={timeLeft} />}
-      
+      {gameState === 'playing' && <HUD score={score} timeLeft={timeLeft} />}
+
       {gameState === 'gameover' && (
-        <GameOver 
-          score={score} 
-          onRestart={handleStartGame} 
-          onExit={() => setGameState('lobby')} 
+        <GameOver
+          score={score}
+          onRestart={handleStartGame}
+          onExit={() => setGameState('lobby')}
         />
       )}
 
       {showLogin && (
-        <LoginModal 
-          onLoginSuccess={handleLoginSuccess} 
-          onCancel={() => setShowLogin(false)} 
+        <LoginModal
+          onLoginSuccess={handleLoginSuccess}
+          onCancel={() => setShowLogin(false)}
         />
       )}
 
