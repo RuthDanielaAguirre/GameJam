@@ -8,7 +8,7 @@ function MenuScreen({ onStart }) {
   return (
     <div className="screen">
       <h1>Light Hunt</h1>
-      <p>Apunta al portal con tu cámara y captura los orbes de luz antes de que desaparezcan</p>
+      <p>Captura todos los orbes de luz antes de que se agote el tiempo</p>
       <button className="btn" onClick={onStart}>
         Iniciar
       </button>
@@ -16,7 +16,6 @@ function MenuScreen({ onStart }) {
   )
 }
 
-// ─── HUD durante la partida ───────────────────────────────────────────────────
 function HUD({ score, timeLeft }) {
   return (
     <>
@@ -26,7 +25,7 @@ function HUD({ score, timeLeft }) {
           {timeLeft}s
         </div>
       </div>
-      <div className="hint">apunta al portal → toca los orbes</div>
+      <div className="hint">toca los orbes para capturarlos</div>
     </>
   )
 }
