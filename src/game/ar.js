@@ -32,9 +32,9 @@ export async function initAR(container, { onCapture, onTargetFound }) {
   const anchor = mindarThree.addAnchor(168)
 
   const spawnOrb = () => {
-    if (!isRunning || orbs.length >= 25) return 
+    if (!isRunning || orbs.length >= 25) return
     const orbGroup = createOrb()
-    
+
     // Spawn siempre frontal y visible
     orbGroup.position.set(
       (Math.random() - 0.5) * 2.5,
@@ -43,16 +43,16 @@ export async function initAR(container, { onCapture, onTargetFound }) {
     )
     orbGroup.userData.baseY = orbGroup.position.y
     orbGroup.userData.phase = Math.random() * Math.PI * 2
-    
-    // Nueva velocidad solicitada por el usuario
+
+    // Nueva velocidad solicitada por el usuario (Aumentada)
     orbGroup.userData.velocity = new THREE.Vector3(
-      (Math.random() - 0.5) * 0.015,
-      (Math.random() - 0.5) * 0.015,
-      (Math.random() - 0.5) * 0.015
+      (Math.random() - 0.5) * 0.04,
+      (Math.random() - 0.5) * 0.04,
+      (Math.random() - 0.5) * 0.04
     )
     // Tiempo de vida para evitar saturación (4 segundos)
     orbGroup.userData.expiresAt = Date.now() + 4000
-    
+
     anchor.group.add(orbGroup)
     orbs.push(orbGroup)
     playSpawn()
@@ -77,7 +77,7 @@ export async function initAR(container, { onCapture, onTargetFound }) {
 
   const handlePointer = (e) => {
     if (!isRunning || !targetFoundTriggered) return
-    
+
     const clientX = e.touches ? e.touches[0].clientX : e.clientX
     const clientY = e.touches ? e.touches[0].clientY : e.clientY
 
@@ -85,13 +85,13 @@ export async function initAR(container, { onCapture, onTargetFound }) {
     mouse.y = -(clientY / window.innerHeight) * 2 + 1
 
     raycaster.setFromCamera(mouse, camera)
-    
+
     // Intersectamos con el grupo de anclaje (que contiene orbes)
     const hits = raycaster.intersectObjects(anchor.group.children, true)
 
     if (hits.length > 0) {
       let hitObject = hits[0].object
-      
+
       // Subimos hasta encontrar el grupo que está en el array 'orbs'
       let targetOrb = hitObject
       while (targetOrb.parent && !orbs.includes(targetOrb)) {
@@ -116,7 +116,7 @@ export async function initAR(container, { onCapture, onTargetFound }) {
 
   renderer.setAnimationLoop((time) => {
     if (!isRunning) return
-    
+
     // Fallback de detección por visibilidad
     if (anchor.group.visible && !targetFoundTriggered) {
       handleTargetFound();
