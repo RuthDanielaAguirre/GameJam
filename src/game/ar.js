@@ -22,7 +22,7 @@ export async function initAR(container, { onCapture, onTargetFound }) {
   callbacks.onTargetFound = onTargetFound
   isRunning = true
   targetFoundTriggered = false
-  
+
   // Reiniciar estado
   arState.paranoia = false
   arState.speedMult = 1
@@ -42,15 +42,15 @@ export async function initAR(container, { onCapture, onTargetFound }) {
   const anchor = mindarThree.addAnchor(168)
 
   const spawnOrb = () => {
-    if (!isRunning || orbs.length >= 25) return 
+    if (!isRunning || orbs.length >= 1000) return
     const orbGroup = createOrb()
-    
+
     orbGroup.position.set(
       (Math.random() - 0.5) * 2.5,
       (Math.random() - 0.5) * 2.5,
       Math.random() * 0.4 + 0.15
     )
-    
+
     const baseSpeed = 0.04
     orbGroup.userData.velocity = new THREE.Vector3(
       (Math.random() - 0.5) * baseSpeed,
@@ -58,7 +58,7 @@ export async function initAR(container, { onCapture, onTargetFound }) {
       (Math.random() - 0.5) * baseSpeed
     )
     orbGroup.userData.expiresAt = Date.now() + 5000
-    
+
     anchor.group.add(orbGroup)
     orbs.push(orbGroup)
     playSpawn()
@@ -69,7 +69,7 @@ export async function initAR(container, { onCapture, onTargetFound }) {
     console.log('🎯 CARA DETECTADA');
     targetFoundTriggered = true
     callbacks.onTargetFound?.()
-    
+
     if (!spawnInterval && isRunning) {
       const scheduleNextSpawn = () => {
         if (!isRunning) return
@@ -89,7 +89,7 @@ export async function initAR(container, { onCapture, onTargetFound }) {
 
   const handlePointer = (e) => {
     if (!isRunning || !targetFoundTriggered) return
-    
+
     const isMoveEvent = e.type === 'mousemove' || e.type === 'touchmove';
     const clientX = e.touches ? e.touches[0].clientX : e.clientX
     const clientY = e.touches ? e.touches[0].clientY : e.clientY
@@ -97,7 +97,7 @@ export async function initAR(container, { onCapture, onTargetFound }) {
     mouse.x = (clientX / window.innerWidth) * 2 - 1
     mouse.y = -(clientY / window.innerHeight) * 2 + 1
 
-    if (isMoveEvent) return; 
+    if (isMoveEvent) return;
 
     raycaster.setFromCamera(mouse, camera)
     const hits = raycaster.intersectObjects(anchor.group.children, true)
@@ -126,9 +126,9 @@ export async function initAR(container, { onCapture, onTargetFound }) {
 
   await mindarThree.start()
 
-  renderer.setAnimationLoop((time) => {
+  renderer.setAnimationLoop(() => {
     if (!isRunning) return
-    
+
     if (anchor.group.visible && !targetFoundTriggered) {
       handleTargetFound();
     }
@@ -151,7 +151,7 @@ export async function initAR(container, { onCapture, onTargetFound }) {
           const distToRay = raycaster.ray.distanceSqToPoint(orb.position)
           if (distToRay < 2.0) {
             const pushVector = new THREE.Vector3().subVectors(orb.position, raycaster.ray.origin)
-            pushVector.z = 0 
+            pushVector.z = 0
             const repulsionStrength = 0.2 / Math.max(0.1, distToRay)
             pushVector.normalize().multiplyScalar(repulsionStrength)
             orb.position.add(pushVector)
