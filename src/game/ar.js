@@ -111,8 +111,10 @@ export async function initAR(container, { onCapture, onTargetFound }) {
 
       const idx = orbs.indexOf(targetOrb)
       if (idx > -1) {
-        anchor.group.remove(targetOrb)
-        orbs.splice(idx, 1)
+        if (targetOrb.userData.type !== 'GREEN') {
+          anchor.group.remove(targetOrb)
+          orbs.splice(idx, 1)
+        }
         playCapture()
         callbacks.onCapture?.(targetOrb.userData.points, targetOrb.userData.type)
       }

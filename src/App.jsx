@@ -197,6 +197,7 @@ export default function App() {
   
   const scoreRef = useRef(0)
   const multiplierRef = useRef(1)
+  const messageTimeoutRef = useRef(null)
 
 
   const handleStop = useCallback(async (finalScore) => {
@@ -230,6 +231,7 @@ export default function App() {
     setIsMusicPlaying(true)
     await initAR(containerRef.current, {
       onCapture: (points, type) => {
+        console.log(`🎯 Orb captured: ${type} (+${points} pts)`);
         // Lógica de puntos básica
         setScore(s => {
           const next = Math.max(0, s + (points * (multiplierRef.current || 1)))
@@ -239,16 +241,19 @@ export default function App() {
 
         // Lógica de Poderes
         if (type === 'RED') {
-          setActiveMessage("Que seas paranoide no quiere decir que no te estén persiguiendo")
+          console.log("Setting RED message");
+          setActiveMessage("¡Apestas!")
           arState.paranoia = true
           setTimeout(() => arState.paranoia = false, 5000)
         } else if (type === 'GREEN') {
+          console.log("Setting GREEN message");
           setActiveMessage("Modo munchies activado")
           setActiveEffect('green')
           arState.speedMult = 0.5
-          setTimeout(() => { setActiveEffect(null); arState.speedMult = 1 }, 5000)
+          setTimeout(() => { setActiveEffect(null); arState.speedMult = 1 }, 10000)
         } else if (type === 'YELLOW') {
-          setActiveMessage("Sobredosis de cafeína")
+          console.log("Setting YELLOW message");
+          setActiveMessage("Sobredosis de cafeínaaaaaa!")
           setActiveEffect('shake')
           arState.speedMult = 2
           arState.spawnRateMult = 2
@@ -260,13 +265,19 @@ export default function App() {
             multiplierRef.current = 1
           }, 5000)
         } else if (type === 'ORANGE') {
+          console.log("Setting ORANGE message");
           setActiveMessage("Tu gato exige atención")
           setCatMinigame(true)
         }
 
-        // Limpiar mensaje tras 3.5 segundos
+        // Limpiar mensaje tras 3.5 segundos con manejo de ref
         if (type !== 'BLUE') {
-          setTimeout(() => setActiveMessage(""), 3500)
+          if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
+          messageTimeoutRef.current = setTimeout(() => {
+            console.log("Clearing message");
+            setActiveMessage("");
+            messageTimeoutRef.current = null;
+          }, 3500)
         }
       },
       onTargetFound: () => {
