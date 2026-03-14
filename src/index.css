@@ -1,111 +1,155 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-body {
+* {
   margin: 0;
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+  padding: 0;
   box-sizing: border-box;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+:root {
+  --cyan:    #00ffff;
+  --magenta: #ff00ff;
+  --yellow:  #ffff00;
+  --dark:    #050510;
+  --glass:   rgba(5, 5, 20, 0.75);
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
+body {
+  background: var(--dark);
+  font-family: 'Share Tech Mono', monospace;
+  overflow: hidden;
+  touch-action: none;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+/* AR canvas ocupa toda la pantalla detrás del React root */
+#ar-container {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+/* React overlay encima, sin bloquear eventos del canvas por defecto */
+#root {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* ─── HUD ─── */
+.hud {
+  display: flex;
+  justify-content: space-between;
+  padding: 1.2rem 1.5rem;
+}
+
+.hud-box {
+  background: var(--glass);
+  border: 1px solid var(--cyan);
+  padding: 0.5rem 1.2rem;
+  color: var(--cyan);
+  font-size: 1.1rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  box-shadow:
+    0 0 8px var(--cyan),
+    inset 0 0 8px rgba(0, 255, 255, 0.05);
+}
+
+.hud-box.danger {
+  border-color: #ff3333;
+  color: #ff3333;
+  box-shadow: 0 0 8px #ff3333, inset 0 0 8px rgba(255, 0, 0, 0.08);
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 1; }
+  to   { opacity: 0.5; }
+}
+
+/* ─── Pantalla menú / game over ─── */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.8rem;
+  background: rgba(0, 0, 0, 0.65);
+  pointer-events: all;
+}
+
+.screen h1 {
+  font-size: clamp(2rem, 8vw, 3.5rem);
+  color: var(--cyan);
+  text-shadow: 0 0 20px var(--cyan), 0 0 60px var(--cyan);
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.screen p {
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+  max-width: 280px;
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.score-display {
+  font-size: clamp(4rem, 15vw, 6rem);
+  color: var(--cyan);
+  text-shadow: 0 0 30px var(--cyan), 0 0 80px var(--cyan);
+  line-height: 1;
+}
+
+.score-label {
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 4px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  margin-top: -0.5rem;
+}
+
+/* ─── Botón ─── */
+.btn {
+  background: transparent;
+  border: 2px solid var(--magenta);
+  color: var(--magenta);
+  padding: 0.9rem 3rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1rem;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 0 12px var(--magenta), inset 0 0 12px rgba(255, 0, 255, 0.05);
+  transition: all 0.15s ease;
+  pointer-events: all;
+}
+
+.btn:hover,
+.btn:active {
+  background: var(--magenta);
+  color: #000;
+  box-shadow: 0 0 30px var(--magenta), 0 0 60px var(--magenta);
+}
+
+/* ─── Hint de apuntar ─── */
+.hint {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  animation: fadeInOut 2s ease-in-out infinite;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.2; }
+  50%       { opacity: 0.8; }
 }

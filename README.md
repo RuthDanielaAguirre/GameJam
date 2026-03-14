@@ -1,16 +1,42 @@
-# React + Vite
+# Light Hunt AR 🔮
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Juego de realidad aumentada para Game Jam. Captura orbes de luz que aparecen sobre un portal en el mundo real.
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+pnpm install
+pnpm dev
+```
 
-## React Compiler
+## Generar tu imagen target (.mind)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Ve a: https://hiukim.github.io/mind-ar-js-doc/tools/compile
+2. Sube tu imagen "portal" (necesita buen contraste, mínimo 2-3 estrellas)
+3. Descarga el `.mind` generado
+4. Ponlo en `/public/targets/portal.mind`
+5. Cambia la URL en `src/game/ar.js` línea ~20:
+   ```js
+   imageTargetSrc: '/targets/portal.mind',
+   ```
 
-## Expanding the ESLint configuration
+## Sonidos
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Genera los sfx gratis en https://sfxr.me o https://jsfxr.com y ponlos en `/public/sounds/`:
+- `capture.mp3` — sonido al capturar un orbe
+- `spawn.mp3`   — sonido al aparecer un orbe
+- `ambient.mp3` — música de fondo en loop
+
+## División del equipo
+
+| Persona | Archivos |
+|---------|----------|
+| Tú (AR + Three.js) | `src/game/ar.js`, `src/game/createOrb.js` |
+| UI | `src/App.jsx`, `src/index.css` |
+| Audio | `src/game/audio.js`, buscar/generar sfx |
+| Efectos | `src/game/createOrb.js` (más partículas, más tipos) |
+
+## Deploy
+
+Cada `git push` a main despliega automáticamente en Vercel con HTTPS. 
+Prueba siempre en móvil, el AR solo funciona con cámara real.

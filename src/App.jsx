@@ -1,121 +1,98 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import { initAR, stopAR } from './game/ar'
+import { playAmbient, stopAmbient } from './game/audio'
+import './index.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+// ─── Pantalla de inicio ───────────────────────────────────────────────────────
+function MenuScreen({ onStart }) {
+  return (
+    <div className="screen">
+      <h1>Light Hunt</h1>
+      <p>Apunta al portal con tu cámara y captura los orbes de luz antes de que desaparezcan</p>
+      <button className="btn" onClick={onStart}>
+        Iniciar
+      </button>
+    </div>
+  )
+}
 
+// ─── HUD durante la partida ───────────────────────────────────────────────────
+function HUD({ score, timeLeft }) {
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+      <div className="hud">
+        <div className="hud-box">⬡ {score}</div>
+        <div className={`hud-box ${timeLeft <= 10 ? 'danger' : ''}`}>
+          {timeLeft}s
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      </div>
+      <div className="hint">apunta al portal → toca los orbes</div>
     </>
   )
 }
 
-export default App
+// ─── Pantalla de game over ────────────────────────────────────────────────────
+function GameOver({ score, onRestart }) {
+  return (
+    <div className="screen">
+      <h1>Game Over</h1>
+      <div className="score-display">{score}</div>
+      <p className="score-label">orbes capturados</p>
+      <button className="btn" onClick={onRestart}>
+        Jugar de nuevo
+      </button>
+    </div>
+  )
+}
+
+// ─── App principal ────────────────────────────────────────────────────────────
+export default function App() {
+  const containerRef = useRef(null)
+  const [gameState, setGameState] = useState('menu') // 'menu' | 'playing' | 'gameover'
+  const [score, setScore]         = useState(0)
+  const [timeLeft, setTimeLeft]   = useState(60)
+
+  const handleStop = useCallback(() => {
+    stopAR()
+    stopAmbient()
+    setGameState('gameover')
+  }, [])
+
+  const handleStart = useCallback(async () => {
+    setScore(0)
+    setTimeLeft(60)
+    setGameState('playing')
+    playAmbient()
+    await initAR(containerRef.current, {
+      onCapture: () => setScore(s => s + 1),
+    })
+  }, [])
+
+  // Countdown timer
+  useEffect(() => {
+    if (gameState !== 'playing') return
+    const interval = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 1) {
+          clearInterval(interval)
+          handleStop()
+          return 0
+        }
+        return t - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [gameState, handleStop])
+
+  return (
+    <>
+      {/* Canvas de AR — siempre montado para que MindAR tenga el div */}
+      <div ref={containerRef} id="ar-container" />
+
+      {/* UI overlay */}
+      {gameState === 'menu'     && <MenuScreen onStart={handleStart} />}
+      {gameState === 'playing'  && <HUD score={score} timeLeft={timeLeft} />}
+      {gameState === 'gameover' && <GameOver score={score} onRestart={handleStart} />}
+    </>
+  )
+}
